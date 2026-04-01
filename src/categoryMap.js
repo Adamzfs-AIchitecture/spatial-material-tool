@@ -9,6 +9,11 @@
 
 export const CATEGORY_RULES = [
   {
+    category: "ceiling",
+    match: (name) => name.toLowerCase().includes("ceiling"),
+    families: ["plaster", "wood"],
+  },
+  {
     category: "wall",
     match: (name) => name.toLowerCase().includes("wall"),
     families: ["plaster", "tile"],
