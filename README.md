@@ -1,16 +1,107 @@
-# React + Vite
+# Interactive Material Experience Tool
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+This project is a **web-based interactive 3D material selection tool** built with React and Three.js.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+It rethinks how users engage with architectural space by turning a static model into an **interactive decision-making interface**, allowing users to explore, inspect, and compare material options in real time.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Concept
 
-## Expanding the ESLint configuration
+Traditional architectural visualization focuses on presentation.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+This tool focuses on **interaction and decision-making**.
+
+Two core viewing modes are designed to bridge spatial understanding and surface evaluation:
+
+### Explore Mode
+
+* Free navigation in 3D space
+* Axonometric / perspective control
+* Designed for **spatial awareness and exploration**
+
+### Inspect Mode
+
+* Orthographic interior elevation views
+* Fixed camera aligned to room surfaces
+* Zoom-enabled (no rotation/pan)
+* Designed for **precise material inspection and comparison**
+
+---
+
+## Key Features
+
+* 🎯 Click-to-select surfaces and apply finishes
+* 🔄 Real-time material swapping
+* 🆚 A/B comparison system (Save A / Save B)
+* 🎥 Dual camera system (Explore vs Inspect)
+* 🧭 Preset elevation views (Front / Rear / Left / Right)
+* 🏠 Interior-focused viewing logic for decision clarity
+
+---
+
+## Technical Stack
+
+* React (Vite)
+* Three.js (React Three Fiber)
+* JavaScript / WebGL
+
+---
+
+## Design Thinking
+
+This project explores a shift from:
+
+> “3D visualization as output”
+> → “3D environment as an interactive decision system”
+
+The goal is to:
+
+* reduce friction in design communication
+* allow non-expert users to engage with spatial decisions
+* bridge architecture, product thinking, and user experience
+
+---
+
+## Current Status
+
+Prototype (V1)
+
+Completed:
+
+* Core interaction system
+* Dual viewing modes
+* Material application logic
+* Comparison workflow
+
+In Progress:
+
+* UI refinement
+* Texture scaling consistency
+* Performance optimization
+* Expanded material library integration
+
+---
+
+## Future Development
+
+* Material database integration (e.g. ambientCG)
+* User session saving / sharing
+* Multi-room / multi-scene support
+* Lighting and realism improvements
+* Productization for client-facing workflows
+
+---
+
+## Author
+
+Fangshuo Zhao
+Architectural Designer → Product / Experience Design
+
+---
+
+## Live Demo
+
+[Add your Vercel link here]
