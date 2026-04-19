@@ -98,10 +98,10 @@ In Progress:
 ## Author
 
 Fangshuo Zhao
-Architectural Designer → Product / Experience Design
 
 ---
 
 ## Live Demo
 
-[Add your Vercel link here]
+https://cubic.fangshuozhao.com/
+at: https://www.fangshuozhao.com/
