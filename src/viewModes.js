@@ -67,7 +67,7 @@ export const EXPLORE_HIDDEN = ["ceiling"]
  * Decrease to zoom in (wall fills more of the screen).
  * Increase for more breathing room around the composition.
  */
-export const INSPECT_WORLD_WIDTH = 10
+export const INSPECT_WORLD_WIDTH = 15
 
 /**
  * Orthographic zoom limits for Inspect mode.
@@ -83,7 +83,7 @@ export const INSPECT_WORLD_WIDTH = 10
  *   max = 450 → shows ~3  world units (roughly 3× zoomed in)
  */
 export const INSPECT_ZOOM_LIMITS = {
-  min: 70,
+  min: 45,
   max: 450,
 }
 
@@ -135,21 +135,21 @@ export const INSPECT_VIEWS = [
     id:     "front",
     label:  "Front",
     // Camera near rear of room, looking outward toward interior of wall_front (+Z).
-    camera: { position: [0,   1.4, -0.5], target: [0, 1.4, 5] },
-    hidden: ["wall_rear"],
+    camera: { position: [0, 1.4, 1.8], target: [0, 1.4, 8] },
+    hidden: [],
   },
   {
     id:     "rear",
     label:  "Rear",
     // Camera near front of room, looking outward toward interior of wall_rear (−Z).
-    camera: { position: [0,   1.4,  0.5], target: [0, 1.4, -5] },
-    hidden: ["wall_front"],
+    camera: { position: [0, 1.4, 0.5], target: [0, 1.4, -5] },
+    hidden: [],
   },
   {
     id:     "left",
     label:  "Left",
     // Camera on +X side, looking outward toward interior of wall_left (−X).
-    camera: { position: [0.5, 1.4,  0],   target: [-5, 1.4, 0] },
+    camera: { position: [2.2, 1.4, -0.8],   target: [-8, 1.4, -0.8] },
     hidden: [],
   },
   {
