@@ -10,7 +10,7 @@ import {
 import * as THREE from "three"
 
 import { PRESET_BY_ID, PRESETS_BY_FAMILY } from "./materialLibrary"
-import { buildMaterialFromPreset } from "./materialUtils"
+import { buildMaterialForObject, buildMaterialFromPreset } from "./materialUtils"
 import { getCategoryFromName, getFamiliesForCategory } from "./categoryMap"
 import { deriveRoomPlan } from "./legendUtils"
 import InspectLegend from "./InspectLegend"
@@ -30,14 +30,14 @@ import {
 
 function CameraManager({ mode, inspectPreset, orbitRef }) {
   const { camera, size } = useThree()
-
-  const cameraRef = useRef(camera)
-  const sizeRef = useRef(size)
-
-  cameraRef.current = camera
-  sizeRef.current = size
+  const { width, height } = size
+  const cameraRef = useRef(null)
+  const sizeRef = useRef(null)
 
   useEffect(() => {
+    cameraRef.current = camera
+    sizeRef.current = { width, height }
+
     const cam = cameraRef.current
     const sz = sizeRef.current
 
@@ -48,26 +48,32 @@ function CameraManager({ mode, inspectPreset, orbitRef }) {
       }
 
       cam.position.set(...EXPLORE_CAMERA.position)
+      cam.lookAt(...EXPLORE_CAMERA.target)
+      cam.updateMatrixWorld()
 
       if (orbitRef.current) {
         orbitRef.current.target.set(...EXPLORE_CAMERA.target)
         orbitRef.current.update()
       }
     } else if (mode === "inspect" && inspectPreset) {
+      cam.position.set(...inspectPreset.camera.position)
+      cam.lookAt(...inspectPreset.camera.target)
+      cam.updateMatrixWorld()
+
       if (cam.isOrthographicCamera) {
-        cam.zoom = sz.width / INSPECT_WORLD_WIDTH
+        cam.zoom = Math.max(
+          INSPECT_ZOOM_LIMITS.min,
+          Math.min(INSPECT_ZOOM_LIMITS.max, sz.width / INSPECT_WORLD_WIDTH)
+        )
         cam.updateProjectionMatrix()
       }
-
-      cam.position.set(...inspectPreset.camera.position)
 
       if (orbitRef.current) {
         orbitRef.current.target.set(...inspectPreset.camera.target)
         orbitRef.current.update()
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, inspectPreset])
+  }, [camera, mode, inspectPreset, orbitRef, width, height])
 
   return null
 }
@@ -87,6 +93,54 @@ const SELECTED_MATERIAL = new THREE.MeshStandardMaterial({
   metalness: 0.05,
   side: THREE.DoubleSide,
 })
+
+const REVERSED_SURFACE_NAMES = new Set(["wall_right"])
+
+function swapAttributeItems(attribute, a, b) {
+  const itemSize = attribute.itemSize
+
+  for (let i = 0; i < itemSize; i++) {
+    const ai = a * itemSize + i
+    const bi = b * itemSize + i
+    const value = attribute.array[ai]
+
+    attribute.array[ai] = attribute.array[bi]
+    attribute.array[bi] = value
+  }
+
+  attribute.needsUpdate = true
+}
+
+function reverseSurfaceDirection(obj) {
+  if (!obj.isMesh || !REVERSED_SURFACE_NAMES.has(obj.name)) return
+  if (obj.userData.surfaceDirectionReversed) return
+
+  const geometry = obj.geometry.clone()
+
+  if (geometry.index) {
+    const index = geometry.index
+
+    for (let i = 0; i < index.count; i += 3) {
+      const b = index.getX(i + 1)
+      const c = index.getX(i + 2)
+
+      index.setX(i + 1, c)
+      index.setX(i + 2, b)
+    }
+
+    index.needsUpdate = true
+  } else {
+    Object.values(geometry.attributes).forEach((attribute) => {
+      for (let i = 0; i < attribute.count; i += 3) {
+        swapAttributeItems(attribute, i + 1, i + 2)
+      }
+    })
+  }
+
+  geometry.computeVertexNormals()
+  obj.geometry = geometry
+  obj.userData.surfaceDirectionReversed = true
+}
 
 // ── Room model ────────────────────────────────────────────────────────────────
 
@@ -110,6 +164,7 @@ function RoomModel({
 
     scene.traverse((obj) => {
       if (!obj.isMesh) return
+      reverseSurfaceDirection(obj)
       obj.material = DEFAULT_MATERIAL
       obj.userData.originalMaterial = DEFAULT_MATERIAL
     })
@@ -265,6 +320,8 @@ function SceneCanvas({
   onPointerMissed,
   showInspectLine = false,
 }) {
+  const isRightInspect = canvasMode === "inspect" && inspectView === "right"
+
   return (
     <Canvas onPointerMissed={onPointerMissed}>
       <color attach="background" args={["#eeece9"]} />
@@ -289,9 +346,21 @@ function SceneCanvas({
         orbitRef={orbitRef}
       />
 
-      <ambientLight intensity={1.5} />
-      <directionalLight position={[6, 8, 6]} intensity={2.0} />
-      <directionalLight position={[-4, 5, -2]} intensity={0.6} />
+      <ambientLight intensity={isRightInspect ? 1.15 : 1.5} />
+      <directionalLight
+        position={[6, 8, 6]}
+        intensity={isRightInspect ? 2.7 : 2.0}
+      />
+      <directionalLight
+        position={[-4, 5, -2]}
+        intensity={isRightInspect ? 0.35 : 0.6}
+      />
+      {isRightInspect && (
+        <>
+          <directionalLight position={[-7, 4, 3]} intensity={1.15} />
+          <pointLight position={[-2, 2.2, 3]} intensity={0.65} distance={10} />
+        </>
+      )}
 
       <Center>
         <RoomModel
@@ -351,6 +420,7 @@ function App() {
   const lastClickedRef = useRef(null)
   const sceneRef = useRef(null)
   const sceneSetRef = useRef(new Set())
+  const configRef = useRef(config)
   const cachedMaterialsRef = useRef({})
 
   const orbitRef = useRef(null)
@@ -361,12 +431,51 @@ function App() {
     setPlanData(data)
   }, [])
 
+  useEffect(() => {
+    configRef.current = config
+  }, [config])
+
+  const applyMaterialToSceneByCategory = useCallback(
+    (scene, category, material, preset) => {
+      scene.traverse((obj) => {
+        if (!obj.isMesh) return
+
+        const objCategory = getCategoryFromName(obj.name)
+        if (objCategory !== category) return
+
+        const objectMaterial = buildMaterialForObject(
+          material,
+          preset,
+          obj,
+          category
+        )
+
+        obj.userData.currentMaterial = objectMaterial
+        obj.material = objectMaterial
+      })
+    },
+    []
+  )
+
   const registerScene = useCallback((scene) => {
     sceneSetRef.current.add(scene)
+
+    Object.entries(configRef.current).forEach(async ([category, presetId]) => {
+      const preset = PRESET_BY_ID[presetId]
+      if (!preset) return
+
+      const material =
+        cachedMaterialsRef.current[presetId] ??
+        (await buildMaterialFromPreset(preset))
+
+      cachedMaterialsRef.current[presetId] = material
+      applyMaterialToSceneByCategory(scene, category, material, preset)
+    })
+
     return () => {
       sceneSetRef.current.delete(scene)
     }
-  }, [])
+  }, [applyMaterialToSceneByCategory])
 
   const inspectPreset = INSPECT_VIEW_BY_ID[inspectView]
   const isSplitInspect = mode === "inspect" && showInspectContext
@@ -385,23 +494,15 @@ function App() {
 
   // ── Material syncing across mounted scenes ─────────────────────────────────
 
-  const applyMaterialToAllScenesByCategory = useCallback((category, material) => {
+  const applyMaterialToAllScenesByCategory = useCallback((category, material, preset) => {
     sceneSetRef.current.forEach((scene) => {
-      scene.traverse((obj) => {
-        if (!obj.isMesh) return
-
-        const objCategory = getCategoryFromName(obj.name)
-        if (objCategory !== category) return
-
-        obj.userData.currentMaterial = material
-        obj.material = material
-      })
+      applyMaterialToSceneByCategory(scene, category, material, preset)
     })
 
     if (lastClickedRef.current) {
       lastClickedRef.current.material = SELECTED_MATERIAL
     }
-  }, [])
+  }, [applyMaterialToSceneByCategory])
 
   // ── Mode navigation ────────────────────────────────────────────────────────
 
@@ -410,6 +511,10 @@ function App() {
 
     if (newMode === "explore" && selectedObject) {
       if (selectedObject.name.toLowerCase().includes("ceiling")) deselect()
+    }
+
+    if (newMode === "inspect") {
+      setInspectView("right")
     }
 
     setMode(newMode)
@@ -460,7 +565,7 @@ function App() {
 
     cachedMaterialsRef.current[presetId] = material
 
-    applyMaterialToAllScenesByCategory(category, material)
+    applyMaterialToAllScenesByCategory(category, material, preset)
 
     setConfig((prev) => ({ ...prev, [category]: presetId }))
     setActiveVersion(null)
@@ -481,7 +586,7 @@ function App() {
           (await buildMaterialFromPreset(preset))
 
         cachedMaterialsRef.current[presetId] = material
-        applyMaterialToAllScenesByCategory(category, material)
+        applyMaterialToAllScenesByCategory(category, material, preset)
       })
     )
 

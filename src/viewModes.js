@@ -23,7 +23,7 @@
  *   How many world units the orthographic Inspect camera shows horizontally.
  *   Canvas-size-independent: zoom is derived as canvasWidth / INSPECT_WORLD_WIDTH.
  *   Smaller value = fills the wall larger; larger value = more breathing room.
- *   Recommended range: 8–16. Default: 10.
+ *   Recommended range: 15-28. Default: 24.
  *
  * INSPECT_VIEWS
  *   camera.position — axis distance (±20) keeps the scene well inside near/far.
@@ -67,7 +67,7 @@ export const EXPLORE_HIDDEN = ["ceiling"]
  * Decrease to zoom in (wall fills more of the screen).
  * Increase for more breathing room around the composition.
  */
-export const INSPECT_WORLD_WIDTH = 15
+export const INSPECT_WORLD_WIDTH = 24
 
 /**
  * Orthographic zoom limits for Inspect mode.
